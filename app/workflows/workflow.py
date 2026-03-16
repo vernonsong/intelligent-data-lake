@@ -52,7 +52,7 @@ class MockServiceClient:
         start_time = time.time()
         
         try:
-            async with httpx.AsyncClient(proxies={}) as client:
+            async with httpx.AsyncClient() as client:
                 response = await client.get(url, timeout=10.0)
                 duration_ms = (time.time() - start_time) * 1000
                 
@@ -80,7 +80,7 @@ class MockServiceClient:
         start_time = time.time()
         
         try:
-            async with httpx.AsyncClient(proxies={}) as client:
+            async with httpx.AsyncClient() as client:
                 response = await client.get(url, timeout=10.0)
                 duration_ms = (time.time() - start_time) * 1000
                 
@@ -106,7 +106,7 @@ class MockServiceClient:
         start_time = time.time()
         
         try:
-            async with httpx.AsyncClient(proxies={}) as client:
+            async with httpx.AsyncClient() as client:
                 response = await client.get(url, timeout=10.0)
                 duration_ms = (time.time() - start_time) * 1000
                 
@@ -134,7 +134,7 @@ class MockServiceClient:
         start_time = time.time()
         
         try:
-            async with httpx.AsyncClient(proxies={}) as client:
+            async with httpx.AsyncClient() as client:
                 response = await client.put(url, json=updates, timeout=10.0)
                 duration_ms = (time.time() - start_time) * 1000
                 
@@ -159,7 +159,7 @@ class MockServiceClient:
         start_time = time.time()
         
         try:
-            async with httpx.AsyncClient(proxies={}) as client:
+            async with httpx.AsyncClient() as client:
                 response = await client.get(url, timeout=10.0)
                 duration_ms = (time.time() - start_time) * 1000
                 
@@ -457,15 +457,15 @@ class Workflow:
         state["current_node"] = "end"
         
         if success:
-            self.logger.info("工作流执行成功", workflow_id=self.workflow_id, duration="N/A")
+            self.logger.info(f"工作流执行成功：{self.workflow_id}")
         else:
-            self.logger.error("工作流执行失败", workflow_id=self.workflow_id, errors=state["errors"])
+            self.logger.error(f"工作流执行失败：{self.workflow_id} - {state["errors"]}")
         
         return state
     
     async def execute(self, input_data: Dict[str, Any]):
         """执行工作流"""
-        self.logger.info("工作流开始执行", workflow_id=self.workflow_id, input=input_data)
+        self.logger.info(f"工作流开始执行：{self.workflow_id}")
         
         initial_state = {
             "input": input_data,
@@ -481,10 +481,10 @@ class Workflow:
             async for event in self.graph.astream(initial_state):
                 yield event
         except IntelligentDataLakeError as e:
-            self.logger.error("工作流执行发生业务异常", error=e.to_dict())
+            self.logger.error(f"工作流业务异常：{e.to_dict()}")
             raise
         except Exception as e:
-            self.logger.error("工作流执行发生未知异常", error=str(e))
+            self.logger.error(f"工作流未知异常：{str(e)}")
             raise
 
 

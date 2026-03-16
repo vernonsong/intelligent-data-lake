@@ -55,8 +55,8 @@ class Skill:
 
 class SkillLoader:
     """Skill 加载器 - DeepAgents 框架自动发现"""
-    def __init__(self, skills_dir: Path):
-        self.skills_dir = skills_dir
+    def __init__(self, skills_dir):
+        self.skills_dir = Path(skills_dir) if isinstance(skills_dir, str) else skills_dir
         self.skills: Dict[str, Skill] = {}
         self.logger = get_logger("SkillLoader")
     
@@ -87,7 +87,7 @@ class SkillLoader:
             self.skills[name] = skill
             loaded_count += 1
         
-        self.logger.info("Skills 加载完成", count=loaded_count, skills=list(self.skills.keys()))
+        self.logger.info(f"Skills 加载完成：{loaded_count}个 - {list(self.skills.keys())}")
         return self.skills
     
     def list_skills(self) -> List[str]:
@@ -140,7 +140,7 @@ class MockServiceClient:
         start_time = time.time()
         
         try:
-            async with httpx.AsyncClient(proxies={}) as client:
+            async with httpx.AsyncClient() as client:
                 response = await client.get(url, timeout=10.0)
                 duration_ms = (time.time() - start_time) * 1000
                 
@@ -170,7 +170,7 @@ class MockServiceClient:
         start_time = time.time()
         
         try:
-            async with httpx.AsyncClient(proxies={}) as client:
+            async with httpx.AsyncClient() as client:
                 response = await client.get(url, timeout=10.0)
                 duration_ms = (time.time() - start_time) * 1000
                 
@@ -202,7 +202,7 @@ class MockServiceClient:
         start_time = time.time()
         
         try:
-            async with httpx.AsyncClient(proxies={}) as client:
+            async with httpx.AsyncClient() as client:
                 response = await client.put(url, json=updates, timeout=10.0)
                 duration_ms = (time.time() - start_time) * 1000
                 
@@ -231,7 +231,7 @@ class MockServiceClient:
         start_time = time.time()
         
         try:
-            async with httpx.AsyncClient(proxies={}) as client:
+            async with httpx.AsyncClient() as client:
                 response = await client.get(url, timeout=10.0)
                 duration_ms = (time.time() - start_time) * 1000
                 
@@ -297,7 +297,7 @@ class DeepAgent:
                 content = result["choices"][0]["message"]["content"]
                 
                 duration_ms = (time.time() - start_time) * 1000
-                self.logger.info("LLM API 调用成功", url=url, duration_ms=duration_ms, model=self.config.MODEL_NAME)
+                self.logger.info(f"LLM API 成功：{url} ({duration_ms:.1f}ms) - {self.config.MODEL_NAME}")
                 
                 try:
                     return json.loads(content)
@@ -305,7 +305,7 @@ class DeepAgent:
                     return {"response": content, "intent": "unknown"}
         except Exception as e:
             duration_ms = (time.time() - start_time) * 1000
-            self.logger.error("LLM API 调用失败", url=url, duration_ms=duration_ms, error=str(e))
+            self.logger.error(f"LLM API 失败：{url} - {str(e)}")
             return self._mock_response(messages)
     
     def _mock_response(self, messages: List[Dict]) -> Dict[str, Any]:
@@ -320,22 +320,22 @@ class DeepAgent:
     
     async def run(self, message: str, context: Optional[Dict] = None) -> Dict[str, Any]:
         """运行 Agent - 意图识别"""
-        self.logger.info("运行 Agent", message=message[:100])
+        self.logger.info(f"运行 Agent: {message[:100]}")
         system_prompt = self._build_system_prompt()
         messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": message}]
         response = await self._call_llm_api(messages)
-        self.logger.info("Agent 运行完成", intent=response.get("intent"))
+        self.logger.info(f"Agent 完成：intent={response.get("intent")}")
         return response
     
     async def orchestrate(self, intent: str, validation_data: Dict[str, Any]) -> Dict[str, Any]:
         """编排工作流"""
-        self.logger.info("编排工作流", intent=intent)
+        self.logger.info(f"编排工作流：intent={intent}")
         await asyncio.sleep(0.5)
         return {"workflow_id": f"wf_{intent}_v1", "name": f"{intent}工作流", "nodes": [], "status": "ready"}
     
     async def validate(self, workflow: Dict[str, Any], validation_data: Dict[str, Any]) -> Dict[str, Any]:
         """5 步验证法 - 真实调用 Mock 服务 API + 错误处理 + 日志"""
-        self.logger.info("开始 5 步验证", workflow_id=workflow.get("workflow_id") if workflow else None)
+        self.logger.info(f"开始 5 步验证：{workflow.get("workflow_id") if workflow else None}")
         
         steps = []
         all_passed = True
@@ -456,11 +456,11 @@ class DeepAgent:
             all_passed = all_passed and status_passed
             
         except IntelligentDataLakeError as e:
-            self.logger.error("验证过程发生业务异常", error=e.to_dict())
+            self.logger.info(f"验证业务异常：{e.to_dict()}")
             steps.append({"step": "验证中断", "passed": False, "details": e.message, "duration_ms": 0})
             all_passed = False
         except Exception as e:
-            self.logger.error("验证过程发生未知异常", error=str(e))
+            self.logger.error(f"验证未知异常：{str(e)}")
             steps.append({"step": "验证中断", "passed": False, "details": f"未知错误：{str(e)}", "duration_ms": 0})
             all_passed = False
         
@@ -473,7 +473,7 @@ class DeepAgent:
             "timestamp": datetime.now().isoformat()
         }
         
-        self.logger.info("5 步验证完成", passed=all_passed, report_id=result["report_id"])
+        self.logger.info(f"5 步验证完成：通过={all_passed}, 报告 ID={result["report_id"]}")
         return result
 
 

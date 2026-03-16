@@ -13,7 +13,9 @@ router = APIRouter()
 
 # 阿里云百炼 API 配置 - 从环境变量获取
 import os
-API_KEY = os.getenv("DASHSCOPE_API_KEY", "sk-sp-0aa99843838b46729778fac5b6ff5e30")
+API_KEY = os.getenv("DASHSCOPE_API_KEY")
+if not API_KEY:
+    raise RuntimeError("DASHSCOPE_API_KEY 环境变量未设置，请在.env 文件中配置")
 API_URL = os.getenv("DASHSCOPE_API_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions")
 MODEL = os.getenv("DASHSCOPE_MODEL", "qwen3.5-plus")
 
